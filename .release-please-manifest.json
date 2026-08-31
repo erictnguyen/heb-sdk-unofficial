@@ -1,4 +1,4 @@
 {
-  "packages/heb-sdk": "1.0.0",
-  "packages/heb-auth": "0.1.0"
+  "packages/heb-sdk": "1.0.1",
+  "packages/heb-auth": "0.1.1"
 }
