@@ -408,6 +408,46 @@ async function startRemoteServer(sessionManagerRemote: MultiTenantSessionManager
     resourceMetadataUrl: getOAuthProtectedResourceMetadataUrl(resourceServerUrl),
   });
 
+  const allowedMcpOrigins = new Set([
+    publicUrl.origin,
+    ...(process.env.MCP_ALLOWED_ORIGINS ?? '')
+      .split(/[\s,]+/)
+      .filter(Boolean)
+      .map((origin) => new URL(origin).origin),
+  ]);
+  const validateMcpOrigin: express.RequestHandler = (req, res, next) => {
+    const origin = req.get('origin');
+    if (!origin || allowedMcpOrigins.has(origin)) {
+      next();
+      return;
+    }
+
+    res.status(403).json({
+      jsonrpc: '2.0',
+      error: {
+        code: -32000,
+        message: 'Invalid Origin header.',
+      },
+      id: null,
+    });
+  };
+
+  const rejectUnsupportedMcpMethod: express.RequestHandler = (_req, res) => {
+    res.setHeader('Allow', 'POST');
+    res.status(405).json({
+      jsonrpc: '2.0',
+      error: {
+        code: -32000,
+        message: 'Method not allowed.',
+      },
+      id: null,
+    });
+  };
+
+  app.use('/mcp', validateMcpOrigin);
+  app.get('/mcp', mcpAuthMiddleware, rejectUnsupportedMcpMethod);
+  app.delete('/mcp', mcpAuthMiddleware, rejectUnsupportedMcpMethod);
+
   app.post('/mcp', mcpAuthMiddleware, async (req, res) => {
     const userId = req.auth?.extra?.['userId'];
 

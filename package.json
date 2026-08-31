@@ -5,6 +5,8 @@
   "type": "module",
   "scripts": {
     "build": "pnpm -r build",
+    "pretest": "pnpm --filter heb-mcp-unofficial... build",
+    "test": "node --test tests/*.test.mjs",
     "typecheck": "pnpm -r typecheck",
     "clean": "rm -rf packages/*/dist",
     "sync:extension-config": "node packages/cookie-bridge-extension/scripts/sync-env.mjs",
@@ -19,6 +21,6 @@
     "tsx": "^4.21.0"
   },
   "engines": {
-    "node": ">=18"
+    "node": ">=20"
   }
 }

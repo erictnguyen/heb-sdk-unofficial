@@ -8,4 +8,3 @@ dist
 *.d.ts.map
 *.js.map
 packages/*/src/*.js
-**/tsconfig.build.json
