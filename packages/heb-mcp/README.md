@@ -4,7 +4,7 @@ MCP (Model Context Protocol) server that exposes H‑E‑B grocery functionality
 
 ## Modes
 
-- **Remote (default)**: SSE transport + Clerk auth + multi‑tenant cookie store.
+- **Remote (default)**: Streamable HTTP transport + OAuth + multi‑tenant H‑E‑B session store.
 - **Local testing**: STDIO transport + local cookie bridge (`http://localhost:4321`). (Note: The bridge is unmaintained; use `heb-auth-unofficial` for better reliability).
 
 ## Remote Deployment (Recommended)
@@ -18,6 +18,7 @@ Set the following on your server:
 - `MCP_SERVER_URL` (public base URL for OAuth + metadata, e.g. `https://mcp.example.com`)
 - `MCP_OAUTH_ISSUER_URL` (optional; defaults to `MCP_SERVER_URL`)
 - `MCP_OAUTH_SCOPES` (optional; default `mcp:tools`)
+- `MCP_ALLOWED_ORIGINS` (optional comma/space-separated browser origins; the public server origin is always allowed)
 - `MCP_OAUTH_CLIENTS_FILE` (optional; defaults to `./data/oauth/clients.json`)
 - `CLERK_JWKS_URL`
 - `CLERK_FRONTEND_URL` (required)
@@ -109,18 +110,17 @@ OAuth endpoints are exposed at:
 ```
 
 ChatGPT uses dynamic client registration and OAuth Authorization Code + PKCE.
-The `/sse` and `/messages` endpoints require OAuth bearer tokens with `mcp:tools` scope.
+The `/mcp` endpoint requires an OAuth bearer token with `mcp:tools` scope.
 For local HTTP testing, set `MCP_DANGEROUSLY_ALLOW_INSECURE_ISSUER_URL=1`.
 `CLERK_SIGN_IN_URL` may include a `{redirect}` or `{redirect_url}` placeholder, or it can accept a `redirect_url`/`after_sign_in_url` query param.
 
-### 5. SSE Endpoint
+### 5. Streamable HTTP Endpoint
 
 ```
-GET /sse
-POST /messages?sessionId=...
+POST /mcp
 ```
 
-Pass the OAuth access token as `Authorization: Bearer <token>` when connecting to both endpoints.
+Pass the OAuth access token as `Authorization: Bearer <token>` when connecting. This stateless server returns JSON responses and returns `405 Method Not Allowed` for optional GET/DELETE requests.
 
 ## Local Testing (Claude Desktop)
 
@@ -190,5 +190,5 @@ For remote access:
 # Build and run
 docker-compose up --build
 
-# SSE endpoint available at http://localhost:3000/sse
+# Streamable HTTP endpoint available at http://localhost:3000/mcp
 ```

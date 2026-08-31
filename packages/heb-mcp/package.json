@@ -16,7 +16,7 @@
     "typecheck": "tsc --noEmit && cd web && pnpm typecheck"
   },
   "dependencies": {
-    "@modelcontextprotocol/sdk": "^1.12.0",
+    "@modelcontextprotocol/sdk": "^1.30.0",
     "express": "^4.21.0",
     "heb-auth-unofficial": "workspace:*",
     "heb-sdk-unofficial": "workspace:*",
@@ -33,6 +33,6 @@
     "typescript": "5.7.3"
   },
   "engines": {
-    "node": ">=18"
+    "node": ">=20"
   }
 }
