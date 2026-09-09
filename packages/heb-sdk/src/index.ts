@@ -167,9 +167,11 @@ export {
 // ─────────────────────────────────────────────────────────────
 export {
     ERROR_CODES,
+    PERSISTED_QUERY_NOT_FOUND,
     getErrorMessages,
     graphqlRequest,
     hasErrorCode,
+    isPersistedQueryNotFound,
     persistedQuery,
     type GraphQLPayload,
     type GraphQLResponse,
@@ -202,6 +204,7 @@ export {
 } from './errors';
 
 export { ENDPOINTS, GRAPHQL_HASHES, MOBILE_GRAPHQL_HASHES, SHOPPING_CONTEXT_TO_CATEGORIES } from './types';
+export { MOBILE_QUERY_TEXT } from './queries';
 
 import { formatAccountDetails } from './account';
 import { formatCart } from './cart';
