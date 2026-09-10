@@ -72,6 +72,18 @@ export interface HEBEndpoints {
 }
 
 /**
+ * Reported once per persistedQuery() call that saw PersistedQueryNotFound, after the
+ * single retry. `errors` is the errors[] of the last miss (extensions included) so the
+ * caller can log the server's own code without another request.
+ */
+export interface PersistedQueryMiss {
+  operationName: string;
+  recovery: 'text' | 'hash-only';
+  recovered: boolean;
+  errors: Array<{ message: string; extensions?: Record<string, unknown> }>;
+}
+
+/**
  * Complete session object with cookies, headers, and metadata.
  */
 export interface HEBSession {
@@ -91,6 +103,8 @@ export interface HEBSession {
   refresh?: () => Promise<void>;
   /** Enable detailed debug logging (default: false) */
   debug?: boolean;
+  /** Called after the APQ retry when the first request missed; never throws into the request. */
+  onPersistedQueryMiss?: (miss: PersistedQueryMiss) => void;
 }
 
 /**

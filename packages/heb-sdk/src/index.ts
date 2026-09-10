@@ -188,6 +188,7 @@ export type {
     HEBCredentials, HEBEndpoints, HEBHeaders,
     HEBSession,
     LoginOptions,
+    PersistedQueryMiss,
     ShoppingContext
 } from './types';
 

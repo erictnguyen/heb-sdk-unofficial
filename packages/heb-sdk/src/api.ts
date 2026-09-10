@@ -2,7 +2,7 @@ import { createHash } from 'node:crypto';
 import { logDebug } from './logger.js';
 import { MOBILE_QUERY_TEXT } from './queries.js';
 import { ensureFreshSession, normalizeHeaders, resolveEndpoint } from './session.js';
-import type { HEBSession } from './types.js';
+import type { HEBSession, PersistedQueryMiss } from './types.js';
 import { GRAPHQL_HASHES, MOBILE_GRAPHQL_HASHES } from './types.js';
 
 /**
@@ -78,9 +78,6 @@ export async function graphqlRequest<T>(
 
 export const PERSISTED_QUERY_NOT_FOUND = 'PERSISTED_QUERY_NOT_FOUND';
 
-/** Max requests one persistedQuery() call may make while recovering from PersistedQueryNotFound. */
-const PERSISTED_QUERY_ATTEMPTS = 2;
-
 export function isPersistedQueryNotFound(response: GraphQLResponse<unknown>): boolean {
   return response.errors?.some(
     e => e.extensions?.code === PERSISTED_QUERY_NOT_FOUND || /PersistedQueryNotFound/i.test(e.message ?? '')
@@ -98,7 +95,8 @@ function sha256(text: string): string {
  * (its APQ cache is per instance, so a valid hash can still miss) it retries
  * once: with the full query text and that text's sha256 when we have text for
  * the operation (standard APQ recovery), otherwise hash-only in the hope of
- * landing on an instance that has it cached. Never more than two requests.
+ * landing on an instance that has it cached. Never more than two requests
+ * total (one retry, bounded).
  */
 export async function persistedQuery<T>(
   session: HEBSession,
@@ -113,13 +111,26 @@ export async function persistedQuery<T>(
     extensions: { persistedQuery: { version: 1, sha256Hash } },
   });
 
-  let response = await graphqlRequest<T>(session, payload(hash));
-  for (let attempt = 2; attempt <= PERSISTED_QUERY_ATTEMPTS && isPersistedQueryNotFound(response); attempt++) {
-    const text = session.authMode === 'bearer' ? MOBILE_QUERY_TEXT[resolvedOperationName] : undefined;
-    logDebug(session, `${resolvedOperationName} PersistedQueryNotFound`, `retrying ${text ? 'with query text' : 'hash-only'}`);
-    response = await graphqlRequest<T>(session, text ? payload(sha256(text), text) : payload(hash));
+  const first = await graphqlRequest<T>(session, payload(hash));
+  if (!isPersistedQueryNotFound(first)) return first;
+
+  // One retry, never more (bounded to two requests total). Full text plus its own sha256 when
+  // we have text for the operation; otherwise hash-only, hoping for a warm instance.
+  const text = session.authMode === 'bearer' ? MOBILE_QUERY_TEXT[resolvedOperationName] : undefined;
+  logDebug(session, `${resolvedOperationName} PersistedQueryNotFound`, `retrying ${text ? 'with query text' : 'hash-only'}`);
+  const second = await graphqlRequest<T>(session, text ? payload(sha256(text), text) : payload(hash));
+  const recovered = !isPersistedQueryNotFound(second);
+  try {
+    session.onPersistedQueryMiss?.({
+      operationName: resolvedOperationName,
+      recovery: text ? 'text' : 'hash-only',
+      recovered,
+      errors: ((recovered ? first : second).errors ?? []) as PersistedQueryMiss['errors'],
+    });
+  } catch {
+    // A logging sink must never turn a recovered request into a failure.
   }
-  return response;
+  return second;
 }
 
 const MOBILE_QUERY_MAP: Record<string, string> = {
