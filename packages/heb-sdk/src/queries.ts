@@ -19,9 +19,13 @@
  * members must be selected with inline fragments; the error members expose
  * `message`. Weekly-ad products are the shared `Product` type (`id`, `SKUs`),
  * aliased to `productId` / `skus` so the response matches weekly-ad.ts.
- * ProductDetailsPage and ProductSearchPageV2 added 2026-09-1x; argument
- * names and variable types confirmed by the validator (see HANDOFF.md,
- * "APQ misses").
+ * ProductDetailsPage added 2026-09-10; argument names and variable types
+ * confirmed by the validator (`id`/`storeId` are `ID!`, and the result is
+ * the union `ProductDetailsPageResult`, whose product-bearing member is
+ * `ProductDetailsPage`). `ProductSearchPageV2` has no text: its result
+ * member `SearchPage` exposes `layout` of type `Layout`, and `Layout` has
+ * no `visualComponents` field, so the shape search.ts reads could not be
+ * expressed within the probe budget (see HANDOFF.md, "APQ misses").
  */
 
 /** Every MobileProduct field product-mapper.ts reads, on the shared Product type. */
@@ -182,30 +186,10 @@ export const MOBILE_QUERY_TEXT: Record<string, string> = {
   }
 }`,
 
-  ProductDetailsPage: `query ProductDetailsPage($id: String!, $isAuthenticated: Boolean!, $shoppingContext: ShoppingContext!, $storeId: String!, $storeIdInt: Int!) {
+  ProductDetailsPage: `query ProductDetailsPage($id: ID!, $isAuthenticated: Boolean!, $shoppingContext: ShoppingContext!, $storeId: ID!) {
   productDetailsPage(id: $id, storeId: $storeId, shoppingContext: $shoppingContext) {
     __typename @include(if: $isAuthenticated)
-    product(storeId: $storeIdInt) { ...MobileProductFields }
-  }
-}
-${MOBILE_PRODUCT_FIELDS}`,
-
-  ProductSearchPageV2: `query ProductSearchPageV2($isAuthenticated: Boolean!, $params: ProductSearchParams!, $searchMode: SearchMode!, $searchPageLayout: SearchPageLayout!, $shoppingContext: ShoppingContext!, $storeId: Int!) {
-  productSearchPageV2(params: $params, searchMode: $searchMode, searchPageLayout: $searchPageLayout, shoppingContext: $shoppingContext, storeId: $storeId) {
-    __typename @include(if: $isAuthenticated)
-    layout {
-      visualComponents {
-        __typename
-        ... on SearchGridV2 {
-          total
-          nextCursor
-          searchContextToken
-          items { ...MobileProductFields }
-          filters { id displayTitle options { id displayTitle count } }
-          categoryFilters { categoryId displayTitle count }
-        }
-      }
-    }
+    ... on ProductDetailsPage { product { ...MobileProductFields } }
   }
 }
 ${MOBILE_PRODUCT_FIELDS}`,
