@@ -73,8 +73,9 @@ export interface HEBEndpoints {
 
 /**
  * Reported once per persistedQuery() call that saw PersistedQueryNotFound, after the
- * single retry. `errors` is the errors[] of the last miss (extensions included) so the
- * caller can log the server's own code without another request.
+ * single retry. `recovered` means the retry answered without errors; `errors` is the
+ * errors[] of the last failing response (extensions included) so the caller can log
+ * the server's own code without another request.
  */
 export interface PersistedQueryMiss {
   operationName: string;

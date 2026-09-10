@@ -119,7 +119,7 @@ export async function persistedQuery<T>(
   const text = session.authMode === 'bearer' ? MOBILE_QUERY_TEXT[resolvedOperationName] : undefined;
   logDebug(session, `${resolvedOperationName} PersistedQueryNotFound`, `retrying ${text ? 'with query text' : 'hash-only'}`);
   const second = await graphqlRequest<T>(session, text ? payload(sha256(text), text) : payload(hash));
-  const recovered = !isPersistedQueryNotFound(second);
+  const recovered = !(second.errors?.length);
   try {
     session.onPersistedQueryMiss?.({
       operationName: resolvedOperationName,
