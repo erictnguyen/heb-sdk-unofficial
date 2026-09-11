@@ -47,7 +47,9 @@ export interface MobileProduct {
     customerFriendlySize?: string;
   }>;
   displayName?: string;
-  productCategory?: { name?: string };
+  productCategory?: { id?: string; name?: string };
+  parentCategory?: { id?: string; name?: string };
+  breadcrumbs?: Array<{ title?: string; categoryId?: string | null }>;
   brand?: { name?: string; isOwnBrand?: boolean };
   productLocation?: { availability?: string; location?: string };
   carouselImageUrls?: string[];
@@ -177,6 +179,25 @@ export function parseNutrition(
   return info;
 }
 
+/** Roots the breadcrumb trail always starts with; they are site navigation, not taxonomy. */
+const BREADCRUMB_ROOTS = new Set(["H-E-B", "Shop"]);
+
+/**
+ * Department > ... > leaf. Prefers `breadcrumbs` (the full path). Without them,
+ * falls back to department (`productCategory`) and leaf (`parentCategory`, which
+ * despite its name is the most specific level). Empty when neither is present.
+ */
+export function mapCategoryPath(product: MobileProduct): string[] {
+  const crumbs = (product.breadcrumbs ?? [])
+    .map((b) => b.title?.trim() ?? "")
+    .filter((t) => t && !BREADCRUMB_ROOTS.has(t));
+  if (crumbs.length) return crumbs;
+  const dept = product.productCategory?.name?.trim();
+  const leaf = product.parentCategory?.name?.trim();
+  const path = [dept, leaf].filter((x): x is string => !!x);
+  return path.filter((x, i) => path.indexOf(x) === i);
+}
+
 export function mapMobileFulfillment(
   availability?: string[],
 ): FulfillmentInfo | undefined {
@@ -250,6 +271,7 @@ export function mapMobileProduct(
     ingredients: product.ingredientStatement,
     size: sku?.customerFriendlySize,
     category: product.productCategory?.name,
+    categoryPath: mapCategoryPath(product),
     isAvailable:
       product.isAvailableForCheckout ??
       product.inAssortment ??

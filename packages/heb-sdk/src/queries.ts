@@ -22,7 +22,12 @@
  * ProductDetailsPage added 2026-09-10; argument names and variable types
  * confirmed by the validator (`id`/`storeId` are `ID!`, and the result is
  * the union `ProductDetailsPageResult`, whose product-bearing member is
- * `ProductDetailsPage`). `ProductSearchPageV2` has no text: its result
+ * `ProductDetailsPage`). On `Product`, `productCategory` is the department and
+ * `parentCategory` the leaf type (the names are inverted); `breadcrumbs`
+ * carries the full path (`H-E-B > Shop > Pantry > Sauces & marinades > Soy
+ * sauces`). The app's own persisted query selects only `productCategory
+ * { name }`, so this op is sent text-first (see api.ts TEXT_FIRST); a
+ * hash-first request could never return the path. `ProductSearchPageV2` has no text: its result
  * member `SearchPage` exposes `layout` of type `Layout`, and `Layout` has
  * no `visualComponents` field, so the shape search.ts reads could not be
  * expressed within the probe budget (see HANDOFF.md, "APQ misses").
@@ -32,7 +37,9 @@
 const MOBILE_PRODUCT_FIELDS = `fragment MobileProductFields on Product {
   productId: id
   displayName
-  productCategory { name }
+  productCategory { id name }
+  parentCategory { id name }
+  breadcrumbs { title categoryId }
   brand { name isOwnBrand }
   productLocation { availability location }
   carouselImageUrls

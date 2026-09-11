@@ -111,6 +111,11 @@ export async function persistedQuery<T>(
     extensions: { persistedQuery: { version: 1, sha256Hash } },
   });
 
+  if (session.authMode === 'bearer' && TEXT_FIRST.has(resolvedOperationName)) {
+    const text = MOBILE_QUERY_TEXT[resolvedOperationName]!;
+    return graphqlRequest<T>(session, payload(sha256(text), text));
+  }
+
   const first = await graphqlRequest<T>(session, payload(hash));
   if (!isPersistedQueryNotFound(first)) return first;
 
@@ -132,6 +137,14 @@ export async function persistedQuery<T>(
   }
   return second;
 }
+
+/**
+ * Operations whose app-persisted query cannot return what the mapper needs, so the
+ * full text is sent on the first (only) request. The server validates and executes
+ * arbitrary text with its own sha256, so there is nothing to fall back to.
+ * ProductDetailsPage: the app hash omits `parentCategory` and `breadcrumbs`.
+ */
+const TEXT_FIRST = new Set(['ProductDetailsPage']);
 
 const MOBILE_QUERY_MAP: Record<string, string> = {
   cartItemV2: 'addItemToCartV2',
